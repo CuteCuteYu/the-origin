@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+
+# 运行时生成的数据（AI 记忆与朋友圈缓存）
+backend/data/saves/
+backend/data/moments/
+
+# 环境与编辑器
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
