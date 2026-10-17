@@ -23,6 +23,7 @@
 - [API 参考](#api-参考)
 - [数据文件格式](#数据文件格式)
 - [自定义指南](#自定义指南)
+- [更换 AI 对话模型](#更换-ai-对话模型)
 - [开发笔记（踩坑记录）](#开发笔记踩坑记录)
 - [常见问题](#常见问题)
 - [扩展与二次开发](#扩展与二次开发)
@@ -437,11 +438,115 @@ uv run python -c "import json;json.load(open('data/npcs/npc_01.json',encoding='u
 3. 若涉及新线索，在其余 NPC 的 `relationships` / `records` 中同步提及（保持一致性）；
 4. 无需改任何代码——后端按 `npc_*.json` 自动发现，前端自动出现在名单中。
 
-### 调整模型与参数
+## 更换 AI 对话模型
 
-- 换模型：改 `backend/config.py` 的 `MODEL_NAME`；
-- 调整回复风格：改 `backend/llm.py`（temperature 默认 `0.85`；max_tokens 默认 `800`）；
-- **换模型时注意**：如果新模型也是推理模型（默认先输出思考内容），务必保留 `extra_body={"thinking": {"type": "disabled"}}` 或调大 `max_tokens`，否则思考可能挤掉正文导致空回复。
+> 本项目通过 **OpenAI 兼容接口**调用大模型，任何提供 OpenAI 风格 Chat Completions 接口的服务都可以接入——各大云厂商、聚合平台、甚至本地模型（Ollama / vLLM 等）。更换模型**只需改环境变量与一个常量**，无需改动任何业务代码，前端也不受影响。
+
+### 模型配置的三个要素
+
+| 要素 | 配置位置 | 说明 |
+| --- | --- | --- |
+| 模型名 | `backend/config.py` 的 `MODEL_NAME` | 发给接口的 `model` 参数，如 `glm-5.3` |
+| API 端点 | 环境变量 `OPENAI_BASE_URL` | 不设置时默认智谱 BigModel 端点 |
+| API 密钥 | 环境变量 `OPENAI_API_KEY` | 启动时自动扫描，日志中只显示掩码 |
+
+### 第一步：设置环境变量（PowerShell，永久生效）
+
+以 DeepSeek 为例：
+
+```powershell
+[Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "你的key", "User")
+[Environment]::SetEnvironmentVariable("OPENAI_BASE_URL", "https://api.deepseek.com/v1", "User")
+# 设置后必须重启终端 / VSCode 才会生效
+```
+
+### 第二步：修改模型名
+
+编辑 `backend/config.py`：
+
+```python
+MODEL_NAME = "deepseek-chat"
+```
+
+**可选进阶**：把模型名也改为环境变量驱动，之后换模型完全不用碰代码：
+
+```python
+MODEL_NAME = os.environ.get("OPENAI_MODEL", "glm-5.3")
+```
+
+### 第三步：重启后端并验证
+
+`Ctrl + C` 停掉后端后重新启动，观察启动日志：
+
+```
+[config] 使用模型: deepseek-chat
+[config] API 端点: https://api.deepseek.com/v1
+```
+
+然后与任意 NPC 说一句话，或直接调接口验证：
+
+```powershell
+$body = @{ message = "你好" } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/npcs/npc_01/chat" -Method Post -Body $body -ContentType "application/json"
+```
+
+### 常见平台速查表
+
+| 平台 | OPENAI_BASE_URL | MODEL_NAME 示例 | 备注 |
+| --- | --- | --- | --- |
+| 智谱 BigModel | `https://open.bigmodel.cn/api/paas/v4` | `glm-5.3`、`glm-4.7` | 项目默认；glm-5.3 是推理模型（见下方注意事项） |
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` | 性价比高，中文对话自然 |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o`、`gpt-4o-mini` | 需海外网络与付费账号 |
+| 月之暗面 Kimi | `https://api.moonshot.cn/v1` | `moonshot-v1-8k`、`kimi-k2` | 长上下文友好 |
+| 阿里云百炼 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus`、`qwen-max` | 需开通百炼服务 |
+| 硅基流动等聚合平台 | 见平台文档 | 平台支持的各模型名 | 一个 key 使用多家模型 |
+| 本地 Ollama | `http://127.0.0.1:11434/v1` | `qwen2.5:7b` 等本地模型名 | 完全离线可玩；`OPENAI_API_KEY` 设为任意非空字符串即可 |
+
+### 推理模型注意事项（重要）
+
+部分模型（如智谱 glm-5.3、DeepSeek-R1 类推理模型）默认先输出一大段“思考”再给正文，思考会消耗 `max_tokens` 预算，极端情况下正文为空。本项目在 `backend/llm.py` 中显式关闭了思考：
+
+```python
+extra_body={"thinking": {"type": "disabled"}}
+```
+
+换模型时：
+
+- 新模型**是**推理模型 → 保留该参数；
+- 新模型**不是**推理模型 → 一般可保留（多数网关会忽略未知字段）；但个别平台（如 OpenAI 官方）对未知字段会报错 `Unrecognized request argument`，此时改为按端点条件启用：
+
+```python
+extra = {"thinking": {"type": "disabled"}} if "bigmodel" in config.BASE_URL else {}
+response = client.chat.completions.create(
+    model=config.MODEL_NAME,
+    messages=messages,
+    temperature=temperature,
+    max_tokens=max_tokens,
+    extra_body=extra,
+)
+```
+
+- 换模型后若出现**空回复** → 先调大 `max_tokens` 再排查。
+
+### 调整回复风格（backend/llm.py）
+
+| 参数 | 默认值 | 作用 | 调整建议 |
+| --- | --- | --- | --- |
+| `temperature` | `0.85` | 随机性 | 调低（0.5~0.7）人设更稳定；调高更活泼但易跑偏 |
+| `max_tokens` | `800` | 单条回复长度上限 | 回复被截断或为空时调大；嫌 NPC 话多可调小 |
+
+朋友圈动态生成固定使用 `temperature=0.95`、`max_tokens=1600`（见 `main.py` 的 `_generate_moments`），追求内容多样性。
+
+### 故障排查
+
+| 现象 | 可能原因 | 处理 |
+| --- | --- | --- |
+| 启动报「未找到 OPENAI_API_KEY」 | 环境变量未设置或未生效 | 按「快速开始」设置后重启终端 |
+| 401 Unauthorized | key 错误/过期，或与端点不匹配 | 核对 key 与 `OPENAI_BASE_URL` 是否同属一个平台 |
+| 404 / model not found | 模型名写错或该平台无此模型 | 对照平台文档改 `MODEL_NAME` |
+| 400 / Unrecognized request argument | 平台不认识 `thinking` 字段 | 见「推理模型注意事项」中的条件启用写法 |
+| NPC 回复为空 | 思考耗尽 token 预算 | 调大 `max_tokens`，或确认思考已关闭 |
+| 回复极慢/超时 | 网络或平台限流 | 检查网络；可在 `llm.py` 调大 `timeout=60.0` |
 
 ---
 
