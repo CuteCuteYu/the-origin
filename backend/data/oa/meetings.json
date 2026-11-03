@@ -64,6 +64,12 @@
     "author": "研发部 · 赵雯（记录）",
     "tags": ["研发", "技术"],
     "preview": "标定复测进度、工具链升级影响与兼容层方案讨论……",
+    "access": {
+      "restricted": true,
+      "passphrase": "ALG-14F",
+      "lock_hint": "「本纪要仅限项目组内部传阅」——研发组自设的纪要库口令（组名缩写 + 楼层），算法组的人都知道。",
+      "reason": "研发内部纪要"
+    },
     "blocks": [
       {
         "type": "meta",
@@ -119,6 +125,12 @@
     "author": "产品部 · 方雨桐（审定）",
     "tags": ["周会", "项目"],
     "preview": "整体进度、关键路径与争议事项（含会上原话收录）……",
+    "access": {
+      "restricted": true,
+      "passphrase": "QM",
+      "lock_hint": "「严禁转发、拍照、外传」——口令是项目组的内部代号，两个字母，就写在会议室 B 白板的角落里。",
+      "reason": "含未公开项目信息的联席会纪要"
+    },
     "blocks": [
       {
         "type": "meta",

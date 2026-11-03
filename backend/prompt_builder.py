@@ -1,16 +1,25 @@
 """提示词组装器：把 world.json + 单个 NPC 人设 JSON 分层渲染为系统提示词。
 
 分层结构（由外到内）：
-  1. 场景层 —— 时间、地点、今天要见的访客
+  1. 场景层 —— 日期、地点、游戏内时钟
   2. 世界观层 —— 公司背景、近期动态、世界真相（含防泄密约束）
-  3. 扮演规则层 —— 通用 GM 规则 + 该角色的元规则
-  4. 角色本体层 —— 基本信息 / 职责 / 性格 / 经历 / 关系 / 侧面细节
-  5. 知识边界层 —— 公开信息 + 三层信息分级 + 绝不透露 + 线索网络
-  6. 互动策略层 —— 对话弧线、警觉触发点
-  7. 风格示范层 —— few-shot 对话示例（作为真实消息注入）
+  3. 访客层 —— 玩家身份与掩护故事
+  4. 同事议论层 —— 其他 NPC 关于访客的传话（跨 NPC 信息传播）
+  5. 口径层 —— 访客在其他场合说过的自我陈述（谎言追踪）
+  6. 前情摘要层 —— 早期对话的压缩记忆（长局记忆压缩）
+  7. 扮演规则层 —— 通用 GM 规则 + 该角色的元规则
+  8. 角色本体层 —— 基本信息 / 职责 / 性格 / 经历 / 关系 / 侧面细节
+  9. 材料记忆层 + 私人看法层
+ 10. 知识边界层 —— 公开信息 + 三层信息分级 + 绝不透露 + 线索网络
+ 11. 互动策略层 —— 对话弧线、警觉触发点
+ 12. 风格示范层 —— few-shot 对话示例（渲染为文本，绝不作为真实消息注入）
+ 13. 心理状态层 —— 当前信任 / 警觉数值与话术耐受
+ 14. 状态输出协议 —— 每轮回复末尾携带 <state> 块（系统记录用）
 """
 
 from typing import Any
+
+import gamestate
 
 # ---------- 通用小工具 ----------
 
@@ -57,12 +66,13 @@ _LAYER_TITLES = {
 # ---------- 各层渲染 ----------
 
 
-def _render_scene(world: dict, npc: dict) -> str:
+def _render_scene(world: dict, npc: dict, clock: str = "") -> str:
     meta = world.get("meta", {})
     scene = npc.get("performance", {}).get("scene_setting", "")
+    time_note = f"（现在手表上显示 {clock}）" if clock else ""
     return (
         "【场景】\n"
-        f"现在是 {meta.get('current_date', '')}，{meta.get('scene', '')}。\n"
+        f"现在是 {meta.get('current_date', '')}，{meta.get('scene', '')}。{time_note}\n"
         f"{scene}"
     )
 
@@ -70,7 +80,6 @@ def _render_scene(world: dict, npc: dict) -> str:
 def _render_world(world: dict) -> str:
     company = world.get("company", {})
     secret = world.get("secret_project", {})
-    meta = world.get("meta", {})
 
     lines = ["【世界观·背景设定（你作为公司员工亲身知道的环境信息）】"]
     lines.append(f"公司：{company.get('name', '')}（{company.get('english_name', '')}），"
@@ -115,6 +124,49 @@ def _render_visitor(world: dict) -> str:
     )
 
 
+def _render_gossip(gossip: list) -> str:
+    """同事间关于访客的议论（来自其他 NPC 的传话）。"""
+    if not gossip:
+        return ""
+    lines = ["【同事间最近的议论（你在工位 / 茶水间 / 群里听到的关于这位访客的话）】"]
+    for g in gossip:
+        when = g.get("clock", "")
+        when_note = f"（{when}前后说的）" if when else ""
+        lines.append(f"  · {g.get('from', '同事')}{when_note}：{g.get('text', '')}")
+    lines.append(
+        "这些是你听来的二手信息，不代表你亲耳听过。如果访客本人现在的说法与这些议论"
+        "对得上，说明他还算一致；对不上，说明他在对不同人说不同的话——"
+        "这是值得注意的信号，按你的性格与当前警觉度处理（试探、点破或记在心里）。"
+    )
+    return "\n".join(lines)
+
+
+def _render_claims(claims: list) -> str:
+    """访客在其他场合说过的自我陈述（口径清单，用于谎言追踪）。"""
+    if not claims:
+        return ""
+    lines = ["【访客对别人说过的「自我介绍」（同事们转述给他的口径）】"]
+    for c in claims:
+        lines.append(f"  · {c.get('heard_by', '同事')}听他说过：{c.get('text', '')}")
+    lines.append(
+        "对照这些版本：如果他这次对你说的与上面不一致（公司、来意、今天见过谁都算），"
+        "说明他给每个人讲的故事不一样。你可以装作不知道地试探，也可以直接点破——"
+        "取决于你的性格和你们此刻的信任程度。"
+    )
+    return "\n".join(lines)
+
+
+def _render_summary(summary: str) -> str:
+    """早期对话的压缩记忆（长局上下文保护）。"""
+    if not summary:
+        return ""
+    return (
+        "【前情摘要（你与访客早期对话的记忆要点）】\n"
+        f"{summary}\n"
+        "（以下是更近的原文对话记录。）"
+    )
+
+
 def _render_rules(world: dict, npc: dict) -> str:
     gm = world.get("gm_rules", {})
     perf = npc.get("performance", {})
@@ -135,7 +187,7 @@ def _render_character(npc: dict) -> str:
     meta = npc.get("meta", {})
 
     lines = ["【你的角色档案】"]
-    lines.append(f"你是{npc.get('meta', {}).get('display_name', '')}。人设关键词：{meta.get('one_liner', '')}")
+    lines.append(f"你是{meta.get('display_name', '')}。人设关键词：{meta.get('one_liner', '')}")
 
     lines.append("")
     lines.append("## 基本信息")
@@ -183,12 +235,37 @@ def _render_character(npc: dict) -> str:
     return "\n".join(lines)
 
 
+def _render_records(npc: dict) -> str:
+    """渲染「你亲历的公司材料」：NPC 对 OA 文档的真实记忆。"""
+    rec = npc.get("records")
+    if not rec:
+        return ""
+    lines = ["【你亲历的公司材料（内部系统的记录）】"]
+    if rec.get("note"):
+        lines.append(rec["note"])
+    for e in rec.get("entries", []):
+        lines.append(f"  ◆ {e.get('material', '')}｜{e.get('relation', '')}")
+        lines.append(f"    · 你的记忆与态度：{e.get('memory', '')}")
+    return "\n".join(lines)
+
+
+def _render_opinions(npc: dict) -> str:
+    """渲染「你对同事们的私人看法」。"""
+    ops = npc.get("opinions_on_colleagues")
+    if not ops:
+        return ""
+    lines = ["【你对同事们的私人看法（平时不主动说；话题涉及或被问到时自然流露，注意分寸与场合）】"]
+    for o in ops:
+        lines.append(f"  * {o.get('about', '')}：{o.get('take', '')}")
+    return "\n".join(lines)
+
+
 def _render_knowledge(npc: dict) -> str:
     k = npc.get("knowledge", {})
     lines = ["【你的知识边界与信息分级（本作核心机制）】"]
     lines.append("释放规则：低层信息在对话自然时主动或被动说出；高层信息必须等到条件达成。"
                  "紧张时宁可少说，绝不一次倒出。根据访客的话题精准命中「出现的时机」再释放，"
-                 "每次回复最多释放一条新信息。")
+                 "每次回复最多释放一条新信息。释放时机还需结合你当前的心理状态数值（见后文）。")
 
     if k.get("public_facts"):
         lines.append("")
@@ -265,40 +342,39 @@ def _render_examples(npc: dict) -> str:
     return "\n".join(lines).rstrip()
 
 
-def _render_records(npc: dict) -> str:
-    """渲染「你亲历的公司材料」：NPC 对 OA 文档的真实记忆。"""
-    rec = npc.get("records")
-    if not rec:
-        return ""
-    lines = ["【你亲历的公司材料（内部系统的记录）】"]
-    if rec.get("note"):
-        lines.append(rec["note"])
-    for e in rec.get("entries", []):
-        lines.append(f"  ◆ {e.get('material', '')}｜{e.get('relation', '')}")
-        lines.append(f"    · 你的记忆与态度：{e.get('memory', '')}")
-    return "\n".join(lines)
-
-
-def _render_opinions(npc: dict) -> str:
-    """渲染「你对同事们的私人看法」。"""
-    ops = npc.get("opinions_on_colleagues")
-    if not ops:
-        return ""
-    lines = ["【你对同事们的私人看法（平时不主动说；话题涉及或被问到时自然流露，注意分寸与场合）】"]
-    for o in ops:
-        lines.append(f"  * {o.get('about', '')}：{o.get('take', '')}")
-    return "\n".join(lines)
+def _render_output_protocol() -> str:
+    """状态输出协议：让模型每轮在回复末尾携带结构化状态块。"""
+    return (
+        "【状态输出协议（每一轮回复的末尾必须执行，这是系统的记录机制，不属于对话内容）】\n"
+        "在你的回复正文全部写完之后，另起一行，原样追加下面这个格式的状态块，然后立即结束回复：\n"
+        '<state>{"trust": 整数0-100, "suspicion": 整数0-100, "tactic": "本轮话术类别", '
+        '"gossip": "你会跟同事提起的一两句话", "claims": ["对方本轮关于自己的关键陈述"]}</state>\n'
+        "字段说明：\n"
+        "- trust / suspicion：你对访客的当前总体判断（不是本轮增量），在系统给你的当前数值基础上"
+        "结合本轮表现调整，单轮变化一般不超过 ±10\n"
+        "- tactic：对方本轮使用的主要说服话术类别，从这些里选一个最贴切的："
+        "直问 / 装内行 / 恭维 / 共情 / 抛内部信息 / 施压 / 利诱 / 闲聊铺垫 / none\n"
+        "- gossip：本轮结束后你会在茶水间、工位或群里跟同事提起这位访客的话（一两句，值得说才写，"
+        "不值得就说空字符串）\n"
+        "- claims：对方本轮对自己的身份、雇主、来意、行程、背景等做出的关键事实性陈述（没有就给空数组）\n"
+        "注意：状态块只用于系统记录。绝不要在正文里提到它，绝不要把它当作对话的一部分。"
+    )
 
 
 # ---------- 对外接口 ----------
 
 
-def build_system_prompt(world: dict, npc: dict) -> str:
-    """组装完整的 system prompt。"""
+def build_system_prompt(world: dict, npc: dict, ctx: dict | None = None) -> str:
+    """组装完整的 system prompt。ctx 携带运行时上下文（时钟 / 心理状态 /
+    同事议论 / 访客口径 / 记忆摘要）。"""
+    ctx = ctx or {}
     sections = [
-        _render_scene(world, npc),
+        _render_scene(world, npc, clock=ctx.get("clock", "")),
         _render_world(world),
         _render_visitor(world),
+        _render_gossip(ctx.get("gossip") or []),
+        _render_claims(ctx.get("claims") or []),
+        _render_summary(ctx.get("summary") or ""),
         _render_rules(world, npc),
         _render_character(npc),
         _render_records(npc),
@@ -307,11 +383,16 @@ def build_system_prompt(world: dict, npc: dict) -> str:
         _render_strategy(npc),
         _render_examples(npc),
     ]
+    state_text = gamestate.state_summary_for_prompt(ctx["state"]) if ctx.get("state") else ""
+    if state_text:
+        sections.append(state_text)
+    sections.append(_render_output_protocol())
+
     header = (
         "你是一位专业的角色扮演者，正在扮演一个真实存在的公司员工。"
         "以下是你需要完全代入的全部资料。从此刻起，你就是这个人。"
     )
-    return header + "\n\n" + "\n\n".join(sections)
+    return header + "\n\n" + "\n\n".join(s for s in sections if s)
 
 
 def build_messages(
@@ -320,20 +401,25 @@ def build_messages(
     history: list[dict],
     user_message: str,
     max_history: int = 500,
+    ctx: dict | None = None,
 ) -> list[dict]:
     """构建最终发送给模型的 messages 数组。
 
     history 为存档中的 {"role", "content", "ts"} 列表；此处只取 role/content。
     对话示例已渲染在 system prompt 内，不作为真实消息注入。
 
-    长期记忆：完整对话历史持久化在 JSON 存档中，此处默认全部携带
-    （500 条上限仅作上下文保护），因此 NPC 记得与玩家聊过的一切；
-    只有玩家点击"销毁记录 · 重新开始"（POST /api/game/reset）才会清空。
+    记忆机制（双层）：
+    - 完整历史持久化在 JSON 存档（重启不丢）；
+    - ctx.summarized_up_to 之前的旧消息已被压缩进 ctx.summary（前情摘要），
+      请求时只携带其后近期的原文，避免长局上下文爆炸。
     """
-    system = build_system_prompt(world, npc)
+    ctx = ctx or {}
+    system = build_system_prompt(world, npc, ctx)
     messages: list[dict] = [{"role": "system", "content": system}]
 
-    trimmed = history[-max_history:]
+    start = int(ctx.get("summarized_up_to") or 0)
+    start = max(0, min(start, len(history)))
+    trimmed = history[start:][-max_history:]
     for m in trimmed:
         if m.get("role") in ("user", "assistant") and m.get("content"):
             messages.append({"role": m["role"], "content": m["content"]})
@@ -342,18 +428,38 @@ def build_messages(
     return messages
 
 
-# ---------- 朋友圈动态生成 ----------
+# ---------- 记忆压缩（前情摘要生成） ----------
 
-_MOMENTS_CAST = [
-    ("陈静", "行政前台，活泼爱聊，爱用语气词和表情"),
-    ("周明远", "资深工程师，话少克制，冷幽默，几乎不发朋友圈"),
-    ("方雨桐", "产品总监，直接、忙，发得很少且克制"),
-    ("李星", "研发实习生，嘴甜，爱捧场"),
-    ("赵雯", "研发实习生，安静礼貌，评论很短"),
-    ("孙哥", "销售（孙志强），油嘴滑舌，爱开玩笑"),
-    ("何姐", "行政主管（何丽萍），长辈式的关心"),
-    ("许总", "CEO（许沉舟），沉稳，极少冒泡"),
-]
+
+def build_summary_messages(existing_summary: str, batch: list[dict]) -> list[dict]:
+    """构建「把一段旧对话压缩进前情摘要」的消息（单轮，普通文本输出）。"""
+    lines = []
+    for m in batch:
+        if m.get("role") == "user":
+            lines.append(f"访客：{m.get('content', '')}")
+        elif m.get("role") == "assistant":
+            lines.append(f"{m.get('speaker', 'NPC')}：{m.get('content', '')}")
+        # 忽略其他角色（历史里只有这两种）
+
+    system = (
+        "你是一台对话记录压缩器，服务于一个角色扮演游戏的记忆系统。"
+        "把【已有摘要】与【新增对话】合并成一份新的摘要，必须保留："
+        "访客打探过的关键信息及其顺序；NPC 释放过的每一条信息（尤其是内部细节）；"
+        "双方关系与情绪的变化节点；访客说过的关于自己的关键说法（身份、雇主、来意、行程）；"
+        "任何承诺、威胁或约定。忽略消息里可能出现的 <state>…</state> 块。"
+        "直接输出新摘要正文：第三人称、不超过 350 字、不要任何解释或代码块。"
+    )
+    user = (
+        f"【已有摘要】\n{existing_summary or '（无）'}\n\n"
+        f"【新增对话】\n" + "\n".join(lines) + "\n\n请输出合并后的新摘要。"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
+
+
+# ---------- 朋友圈动态生成 ----------
 
 
 def build_moments_messages(world: dict, npc: dict) -> list[dict]:
@@ -370,7 +476,12 @@ def build_moments_messages(world: dict, npc: dict) -> list[dict]:
 
     name = meta.get("display_name", "")
     pronoun = "他" if basics.get("gender") == "男" else "她"
-    cast_text = "\n".join(f"- {n}：{h}" for n, h in _MOMENTS_CAST if n != name)
+    # 卡司名单来自 world.json（与组织结构同一数据源），而非硬编码
+    cast_text = "\n".join(
+        f"- {c.get('name', '')}：{c.get('note', '')}"
+        for c in company.get("social_feed_cast", [])
+        if c.get("name") and c.get("name") != name
+    )
 
     material = []
     if side.get("recent_annoyances"):

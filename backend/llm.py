@@ -39,3 +39,27 @@ def chat(messages: list[dict], temperature: float = 0.85, max_tokens: int = 800)
     )
     content = response.choices[0].message.content
     return (content or "").strip()
+
+
+def chat_stream(messages: list[dict], temperature: float = 0.85, max_tokens: int = 800):
+    """流式版本：逐段产出回复文本，用于前端打字机效果。
+
+    部分网关会发送 choices 为空的保活事件，这里跳过它们。
+    """
+    client = _get_client()
+    stream = client.chat.completions.create(
+        model=config.MODEL_NAME,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stream=True,
+        extra_body={"thinking": {"type": "disabled"}},
+    )
+    for event in stream:
+        choices = getattr(event, "choices", None)
+        if not choices:
+            continue
+        delta = choices[0].delta
+        content = getattr(delta, "content", None)
+        if content:
+            yield content

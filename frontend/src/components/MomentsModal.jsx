@@ -70,7 +70,12 @@ export default function MomentsModal({ npc, onClose }) {
           <button
             type="button"
             className="moments-refresh"
-            onClick={() => load(true)}
+            onClick={() => {
+              // 重新生成会覆盖缓存快照（可能是玩家珍藏的那一份），先确认
+              if (window.confirm("重新生成会覆盖当前缓存的朋友圈快照（不可恢复），确定继续吗？")) {
+                load(true);
+              }
+            }}
             disabled={loading}
           >
             {loading && mode === "refresh" ? "生成中…" : "刷新动态"}

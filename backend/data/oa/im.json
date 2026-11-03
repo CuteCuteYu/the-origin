@@ -84,6 +84,12 @@
     "author": "系统导出 · 即时通讯归档",
     "tags": ["私聊", "产品", "研发"],
     "preview": "垫片加急、周五翻篇与「扯平了」……",
+    "access": {
+      "restricted": true,
+      "passphrase": "VIGANEX2021",
+      "lock_hint": "管理员导出的涉密会话归档，查阅需行政设置的通用口令（公司英文名 + 成立年份）。口令的事，行政的人最清楚。",
+      "reason": "涉密会话归档"
+    },
     "blocks": [
       {
         "type": "meta",

@@ -17,3 +17,8 @@ backend/data/moments/
 *.log
 .DS_Store
 Thumbs.db
+
+# 本地 QA / 工具产物
+.playwright-mcp/
+.qa-backup-moments/
+qa-*.png

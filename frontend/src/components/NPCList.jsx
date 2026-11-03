@@ -5,7 +5,7 @@ const ACCENTS = {
   npc_03: "#ffc300",
 };
 
-export default function NPCList({ npcs, activeId, onSelect, onOpenMoments, histories }) {
+export default function NPCList({ npcs, activeId, onSelect, onOpenMoments, histories, gameState }) {
   return (
     <section className="panel roster">
       <div className="panel-head">
@@ -16,6 +16,11 @@ export default function NPCList({ npcs, activeId, onSelect, onOpenMoments, histo
         {npcs.map((npc, i) => {
           const asked = (histories[npc.id] || []).filter((m) => m.role === "user").length;
           const active = npc.id === activeId;
+          const st = gameState?.npcs?.[npc.id];
+          const available = st ? st.available : true;
+          const until = st?.until || npc.available_until;
+          const trust = st?.trust;
+          const suspicion = st?.suspicion;
           return (
             <li key={npc.id} className="roster-item-wrap" style={{ animationDelay: `${i * 90}ms` }}>
               <button
@@ -29,11 +34,17 @@ export default function NPCList({ npcs, activeId, onSelect, onOpenMoments, histo
                   <span className="name-line">
                     <b>{npc.display_name}</b>
                     <i>{npc.title}</i>
+                    <em className={`avail-badge ${available ? "on" : "off"}`}>
+                      {available ? `🟢 可聊到 ${until || "--:--"}` : "🔴 已下班"}
+                    </em>
                   </span>
                   <span className="oneliner">{npc.one_liner}</span>
                   <span className="slot">
                     {npc.interaction_slot}
                     {asked > 0 ? ` · 已记录 ${asked} 问` : ""}
+                    {trust !== undefined && suspicion !== undefined
+                      ? ` · 信任 ${trust} / 警觉 ${suspicion}`
+                      : ""}
                   </span>
                 </span>
               </button>
