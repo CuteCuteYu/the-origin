@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>the-origin // AUTONOMOUS OPERATOR</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230b1512'/%3E%3Cpath d='M16 5l9 11-9 11-9-11z' fill='none' stroke='%23e9b95e' stroke-width='2'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="scanlines" aria-hidden="true"></div>
+
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand__mark">◈</span>
+          <div class="brand__text">
+            <div class="brand__name">the-origin</div>
+            <div class="brand__sub" id="brandSub">AUTONOMOUS OPERATOR · AI_FRONTEND</div>
+          </div>
+        </div>
+
+        <div class="topbar__center">
+          <span class="pill pill--idle" id="statusPill">
+            <span class="dot"></span><span id="statusText">STANDBY</span>
+          </span>
+          <span class="badge" id="modelBadge">AGENT —</span>
+          <span class="badge badge--ghost" id="gameModelBadge">GAME —</span>
+          <span class="badge badge--ghost" id="protocolBadge">PROTOCOL AUTO</span>
+        </div>
+
+        <div class="clocks">
+          <div class="clock">
+            <span class="clock__label">GAME CLOCK</span>
+            <span class="clock__value" id="clockText">16:00</span>
+          </div>
+          <div class="clock clock--sm">
+            <span class="clock__label">REMAIN</span>
+            <span class="clock__value" id="clockRemaining">180m</span>
+          </div>
+          <div class="clock clock--sm">
+            <span class="clock__label">STEPS</span>
+            <span class="clock__value" id="stepStat">0/40</span>
+          </div>
+        </div>
+      </header>
+
+      <aside class="panel side side--left">
+        <section class="block">
+          <div class="block__head">
+            <span class="idx">01</span>
+            <h2>任务指令</h2>
+            <span class="hint">OBJECTIVE</span>
+          </div>
+          <textarea
+            id="objective"
+            rows="5"
+            spellcheck="false"
+            placeholder="例如：完成游戏中的要求，拿到公司机密信息。"
+          ></textarea>
+          <div class="field-row">
+            <label class="field">
+              <span>步数上限</span>
+              <input id="maxTurns" type="number" min="4" max="80" value="40" />
+            </label>
+            <label class="check">
+              <input id="resetFirst" type="checkbox" checked />
+              <span>重置存档（清空进度）</span>
+            </label>
+          </div>
+          <div class="actions">
+            <button id="startBtn" class="btn btn--primary">
+              <span class="btn__glyph">▶</span>启动自主代理
+            </button>
+            <button id="stopBtn" class="btn btn--danger" disabled>
+              <span class="btn__glyph">■</span>中止
+            </button>
+          </div>
+          <div class="banner" id="configBanner" hidden>
+            <strong>配置缺失</strong>
+            <span id="configBannerText"></span>
+          </div>
+          <p class="note">
+            你只需要提出最初的要求。代理会自己读 OA、挑对象、组织话术，
+            直到全部情报被系统判定为 confirmed。
+          </p>
+        </section>
+
+        <section class="block">
+          <div class="block__head">
+            <span class="idx">02</span>
+            <h2>目标名册</h2>
+            <span class="hint">ROSTER</span>
+          </div>
+          <div class="roster" id="npcRoster"></div>
+        </section>
+
+        <section class="block block--grow">
+          <div class="block__head">
+            <span class="idx">03</span>
+            <h2>历史对局</h2>
+            <span class="hint">ARCHIVE</span>
+          </div>
+          <div class="history" id="historyList">
+            <p class="muted">暂无记录。</p>
+          </div>
+        </section>
+      </aside>
+
+      <main class="panel feed-panel">
+        <div class="feed-head">
+          <div class="block__head block__head--flush">
+            <span class="idx">04</span>
+            <h2>行动链</h2>
+            <span class="hint">REASONING TAPE</span>
+          </div>
+          <div class="feed-tools">
+            <nav class="filters" id="filters" aria-label="事件过滤"></nav>
+            <button
+              class="icon-btn"
+              id="openView"
+              type="button"
+              title="控制台设置：行动链 / 模型 / 场景"
+              aria-label="控制台设置：行动链 / 模型 / 场景"
+            >
+              ⚙
+            </button>
+          </div>
+        </div>
+
+        <div class="feed" id="feed">
+          <div class="empty" id="emptyState">
+            <div class="empty__rule"></div>
+            <p class="empty__title">AWAITING DIRECTIVE</p>
+            <p class="empty__text">
+              输入最初的任务要求，按下「启动自主代理」。<br />
+              之后的调查、套话、解锁与判断，全部由 AI 自己完成。
+            </p>
+            <div class="empty__schema">
+              run → thought → action → observation → intel feedback → progress
+            </div>
+          </div>
+        </div>
+
+        <div class="feed-foot">
+          <span class="pulse" id="thinkingDot"></span>
+          <span id="thinkingText">代理待命</span>
+          <span class="feed-foot__right" id="feedMeta">0 events</span>
+        </div>
+      </main>
+
+      <aside class="panel side side--right">
+        <section class="block">
+          <div class="block__head">
+            <span class="idx">05</span>
+            <h2>情报板</h2>
+            <span class="hint">INTEL BOARD</span>
+          </div>
+
+          <div class="stage">
+            <div class="stage__label" id="stageLabel">侦查阶段 · 尚未确认秘密项目存在</div>
+            <div class="stage__rail" id="stageRail">
+              <span class="stage__node"></span>
+              <span class="stage__node"></span>
+              <span class="stage__node"></span>
+              <span class="stage__node"></span>
+            </div>
+            <div class="stage__meta">
+              <span id="coverageText">0/3 已确认</span>
+              <span id="partialText">0 条线索</span>
+            </div>
+          </div>
+
+          <div class="targets" id="targetCards"></div>
+        </section>
+
+        <section class="block">
+          <div class="block__head">
+            <span class="idx">06</span>
+            <h2>代理记忆</h2>
+            <span class="hint">WORKING NOTES</span>
+          </div>
+          <div class="memory" id="memoryList">
+            <p class="muted">暂无笔记。</p>
+          </div>
+        </section>
+
+        <section class="block block--report" id="reportBox" hidden>
+          <div class="block__head">
+            <span class="idx">07</span>
+            <h2>最终报告</h2>
+            <span class="hint">REPORT</span>
+            <button class="ghost-btn" id="copyReport" type="button">复制</button>
+          </div>
+          <pre class="report" id="reportText"></pre>
+        </section>
+      </aside>
+    </div>
+
+    <div class="sheet" id="viewSheet" hidden aria-hidden="true">
+      <div class="sheet__backdrop" data-close-sheet></div>
+      <section
+        class="sheet__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="viewSheetTitle"
+      >
+        <header class="sheet__head">
+          <div>
+            <div class="sheet__kicker">CONSOLE SETTINGS</div>
+            <h2 id="viewSheetTitle">行动链与运行设置</h2>
+          </div>
+          <button class="sheet__close" type="button" data-close-sheet aria-label="关闭">
+            ✕
+          </button>
+        </header>
+
+        <div class="sheet__body">
+          <section class="sheet__section">
+            <h3>事件类型</h3>
+            <p class="sheet__hint">
+              关闭后该类事件不再出现在行动链里；过滤预设同样遵守这个开关。
+            </p>
+            <div class="toggle-grid" id="kindToggles"></div>
+          </section>
+
+          <section class="sheet__section">
+            <h3>阅读习惯</h3>
+            <div class="pref-list">
+              <label class="pref">
+                <span>显示密度</span>
+                <select id="densitySelect">
+                  <option value="cozy">舒适</option>
+                  <option value="compact">紧凑</option>
+                </select>
+              </label>
+              <label class="pref">
+                <span>新事件置顶</span>
+                <input type="checkbox" id="reverseToggle" />
+              </label>
+              <label class="pref">
+                <span>自动滚动</span>
+                <input type="checkbox" id="autoScrollToggle" />
+              </label>
+              <label class="pref">
+                <span>思考默认折叠</span>
+                <input type="checkbox" id="collapseThoughtToggle" />
+              </label>
+              <label class="pref">
+                <span>文档默认折叠</span>
+                <input type="checkbox" id="collapseDocToggle" />
+              </label>
+            </div>
+          </section>
+
+          <section class="sheet__section">
+            <h3>模型配置</h3>
+            <p class="sheet__hint">
+              两套模型分别负责「AI 玩家 · 进攻决策 / 最终报告」与「游戏环境 · NPC 扮演 / 情报鉴定」。
+              留空即使用系统环境变量中的 <code>ANTHROPIC*</code> 配置；两者可以指向不同的网关与服务商。
+              如果自定义了 Base URL，建议同时填写对应的 API Key。
+            </p>
+            <label class="pref pref--wide">
+              <span>显示密钥明文</span>
+              <input type="checkbox" id="showKeys" />
+            </label>
+            <div class="llm-grid">
+              <div class="llm-card">
+                <div class="llm-card__head">
+                  <span class="llm-card__tag">AGENT</span>
+                  <b>AI 玩家 · 进攻</b>
+                </div>
+                <label class="llm-field">
+                  <span>API Key</span>
+                  <input
+                    id="agentKey"
+                    type="password"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="留空使用系统环境变量"
+                  />
+                </label>
+                <label class="llm-field">
+                  <span>Base URL</span>
+                  <input
+                    id="agentBase"
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="留空使用系统环境变量"
+                  />
+                </label>
+                <label class="llm-field">
+                  <span>模型名称</span>
+                  <input
+                    id="agentModel"
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="留空使用系统环境变量"
+                  />
+                </label>
+                <p class="llm-card__env" id="agentEnvHint"></p>
+                <div class="llm-card__foot">
+                  <button type="button" class="btn btn--ghost llm-test" id="agentTest">
+                    测试连接
+                  </button>
+                  <span class="llm-test__result" id="agentTestResult"></span>
+                </div>
+              </div>
+
+              <div class="llm-card">
+                <div class="llm-card__head">
+                  <span class="llm-card__tag llm-card__tag--game">GAME</span>
+                  <b>游戏环境 · NPC</b>
+                </div>
+                <label class="llm-field">
+                  <span>API Key</span>
+                  <input
+                    id="gameKey"
+                    type="password"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="留空使用系统环境变量"
+                  />
+                </label>
+                <label class="llm-field">
+                  <span>Base URL</span>
+                  <input
+                    id="gameBase"
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="留空使用系统环境变量"
+                  />
+                </label>
+                <label class="llm-field">
+                  <span>模型名称</span>
+                  <input
+                    id="gameModel"
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="留空使用系统环境变量"
+                  />
+                </label>
+                <p class="llm-card__env" id="gameEnvHint"></p>
+                <div class="llm-card__foot">
+                  <button type="button" class="btn btn--ghost llm-test" id="gameTest">
+                    测试连接
+                  </button>
+                  <span class="llm-test__result" id="gameTestResult"></span>
+                </div>
+              </div>
+            </div>
+            <p class="sheet__hint">
+              密钥只发送到本机后端，并保存在当前标签页的 sessionStorage（关闭标签页即清除）；
+              Base URL 与模型名称保存在 localStorage。留空的字段会自动回退到系统环境变量。
+              「测试连接」会发送一条极短的测试请求，用来确认密钥 / 网关 / 模型是否可用。
+            </p>
+          </section>
+
+          <section class="sheet__section">
+            <h3>过滤预设</h3>
+            <p class="sheet__hint">
+              每个预设是一组可见事件类型，会以标签形式显示在行动链顶部。可以按自己的习惯增删改。
+            </p>
+            <div class="preset-editor" id="presetEditor"></div>
+            <button class="ghost-btn" id="addPreset" type="button">+ 新增预设</button>
+          </section>
+
+          <section class="sheet__section">
+            <h3>场景配置</h3>
+            <p class="sheet__hint">
+              公司、环境与 NPC 由 <code>backend/data/scenario.json</code> 定义。修改保存后，
+              重启后端会自动导入；也可以在这里立即重新导入。
+            </p>
+            <div class="scenario" id="scenarioStatus">正在读取配置状态…</div>
+            <button class="ghost-btn" id="reloadScenario" type="button">重新导入场景</button>
+          </section>
+        </div>
+
+        <footer class="sheet__foot">
+          <button class="btn btn--ghost" id="resetView" type="button">恢复默认</button>
+          <button class="btn btn--primary" id="closeView" type="button">完成</button>
+        </footer>
+      </section>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -7,6 +7,7 @@ data/saves/ 目录下（对话存档、NPC 心理状态、记忆摘要、同事�
 
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -230,3 +231,68 @@ def load_moments(npc_id: str) -> dict | None:
 
 def save_moments(npc_id: str, payload: dict) -> None:
     save_json(_moments_path(npc_id), payload)
+
+
+# ---------- AI 自主对局记录 ----------
+# 独立于 saves/（对局状态）。重置游戏不会删除 AI 运行日志，方便回看历史对局。
+
+AI_RUN_DIR = DATA_DIR / "ai_runs"
+
+_RUN_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{1,80}$")
+
+
+def _ai_run_path(run_id: str) -> Path | None:
+    run_id = str(run_id or "").strip()
+    if not _RUN_ID_RE.match(run_id):
+        return None
+    return AI_RUN_DIR / f"{run_id}.json"
+
+
+def save_ai_run(run_id: str, payload: dict) -> None:
+    path = _ai_run_path(run_id)
+    if path is None:
+        return
+    AI_RUN_DIR.mkdir(parents=True, exist_ok=True)
+    save_json(path, payload)
+
+
+def load_ai_run(run_id: str) -> dict | None:
+    path = _ai_run_path(run_id)
+    if path is None:
+        return None
+    data = load_json(path)
+    return data if isinstance(data, dict) else None
+
+
+def list_ai_runs(limit: int = 20) -> list[dict]:
+    """按最近更新时间列出 AI 对局摘要（不含完整事件流）。"""
+    if not AI_RUN_DIR.is_dir():
+        return []
+    paths = sorted(
+        AI_RUN_DIR.glob("*.json"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )[: max(1, int(limit))]
+    runs = []
+    for path in paths:
+        data = load_json(path)
+        if not isinstance(data, dict):
+            continue
+        progress = data.get("progress") or {}
+        runs.append(
+            {
+                "id": data.get("id", path.stem),
+                "objective": data.get("objective", ""),
+                "model": data.get("model", ""),
+                "status": data.get("status", ""),
+                "success": bool(data.get("success")),
+                "steps": data.get("steps", 0),
+                "created_at": data.get("created_at", ""),
+                "finished_at": data.get("finished_at", ""),
+                "stage": progress.get("stage", 0),
+                "stage_label": progress.get("stage_label", ""),
+                "confirmed_count": progress.get("confirmed_count", 0),
+                "total_count": progress.get("total_count", 3),
+            }
+        )
+    return runs

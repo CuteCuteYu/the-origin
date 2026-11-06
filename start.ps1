@@ -122,12 +122,16 @@ if (Test-PortOpen 5173) {
 # ---------- open the game ----------
 Write-Host "[3/3] Opening the game in your default browser..."
 Start-Process "http://localhost:5173"
+Write-Host "      AI frontend (autonomous): http://127.0.0.1:8000/ai/" -ForegroundColor Cyan
 
 Write-Host ""
 Write-Host "=============================================="
 Write-Host " Done. Two new windows have been opened:"
 Write-Host "   - Backend  (FastAPI  - port 8000)"
 Write-Host "   - Frontend (Vite dev - port 5173)"
+Write-Host ""
+Write-Host " AI auto-play UI is served by the backend:"
+Write-Host "   http://127.0.0.1:8000/ai/"
 Write-Host ""
 Write-Host " To STOP the game: close those two windows,"
 Write-Host " or press Ctrl+C inside each of them."

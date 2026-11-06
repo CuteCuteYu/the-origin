@@ -214,7 +214,7 @@ export default function App() {
   if (bootError) {
     return (
       <div className="boot-screen">
-        <h1>微芒之下</h1>
+        <h1>宇宙衍生本源</h1>
         <p className="boot-error">无法连接后端：{bootError}</p>
         <p className="boot-hint">
           请先在终端启动 FastAPI 后端，再刷新本页面：
@@ -227,7 +227,7 @@ export default function App() {
   if (!briefing || !npcs.length) {
     return (
       <div className="boot-screen">
-        <h1>微芒之下</h1>
+        <h1>宇宙衍生本源</h1>
         <p className="boot-loading">正在调取档案……</p>
       </div>
     );
@@ -243,8 +243,8 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark">微芒之下</span>
-          <span className="brand-sub">商业调查档案 · {briefing.meta?.scene}</span>
+          <span className="brand-mark">宇宙衍生本源</span>
+          <span className="brand-sub">the-origin · 商业调查档案 · {briefing.meta?.scene}</span>
         </div>
         <nav className="view-tabs">
           <button
@@ -330,7 +330,7 @@ export default function App() {
       )}
 
       <footer className="footnote">
-        微芒之下 · 社会工程学模拟沙盘 · 公司、人物与事件均为虚构 · 对话由大模型实时生成
+        宇宙衍生本源 · the-origin · 社会工程学模拟沙盘 · 公司、人物与事件均为虚构 · 对话由大模型实时生成
       </footer>
     </div>
   );

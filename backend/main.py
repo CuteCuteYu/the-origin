@@ -9,18 +9,27 @@
 import json
 import re
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+import ai_api
 import gamestate
 import llm
+import scenario
+import scenario_api
 import storage
 from prompt_builder import build_messages, build_moments_messages, build_summary_messages
 
-app = FastAPI(title="微芒之下 · 后端", version="1.1.0")
+app = FastAPI(title="宇宙衍生本源（the-origin）· 后端", version="1.3.0")
+
+# 场景配置：启动时自动检测 data/scenario.json 是否变化并导入。
+# 未配置时沿用现有 world.json / npcs / oa 数据文件。
+_SCENARIO_IMPORT = scenario.auto_import()
 
 # 本地开发：前端经 Vite 代理直连，放开 CORS；若部署到公网请改为域名白名单
 app.add_middleware(
@@ -29,6 +38,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# AI 自主游玩接口（/api/ai/*）。人类前端使用的 /api/* 逻辑保持不变。
+app.include_router(ai_api.router)
+app.include_router(scenario_api.router)
+
+# AI 前端的静态页面：目录存在时挂载到 /ai（与 /api/ai 不冲突）。
+# 这样只需启动后端，浏览器打开 http://127.0.0.1:8000/ai/ 即可使用。
+_AI_FRONTEND_DIR = Path(__file__).resolve().parents[1] / "AI_frontend"
+if _AI_FRONTEND_DIR.is_dir():
+    app.mount(
+        "/ai",
+        StaticFiles(directory=str(_AI_FRONTEND_DIR), html=True),
+        name="ai-frontend",
+    )
 
 
 class ChatRequest(BaseModel):

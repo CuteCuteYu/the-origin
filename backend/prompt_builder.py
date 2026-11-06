@@ -9,17 +9,19 @@
   6. 前情摘要层 —— 早期对话的压缩记忆（长局记忆压缩）
   7. 扮演规则层 —— 通用 GM 规则 + 该角色的元规则
   8. 角色本体层 —— 基本信息 / 职责 / 性格 / 经历 / 关系 / 侧面细节
-  9. 材料记忆层 + 私人看法层
- 10. 知识边界层 —— 公开信息 + 三层信息分级 + 绝不透露 + 线索网络
- 11. 互动策略层 —— 对话弧线、警觉触发点
- 12. 风格示范层 —— few-shot 对话示例（渲染为文本，绝不作为真实消息注入）
- 13. 心理状态层 —— 当前信任 / 警觉数值与话术耐受
- 14. 状态输出协议 —— 每轮回复末尾携带 <state> 块（系统记录用）
+  9. 社会关系网层 —— 结构化关系、彼此看法、合作经历与共同社交事件
+ 10. 材料记忆层 + 私人看法层
+ 11. 知识边界层 —— 公开信息 + 三层信息分级 + 绝不透露 + 线索网络
+ 12. 互动策略层 —— 对话弧线、警觉触发点
+ 13. 风格示范层 —— few-shot 对话示例（渲染为文本，绝不作为真实消息注入）
+ 14. 心理状态层 —— 当前信任 / 警觉数值与话术耐受
+ 15. 状态输出协议 —— 每轮回复末尾携带 <state> 块（系统记录用）
 """
 
 from typing import Any
 
 import gamestate
+import social
 
 # ---------- 通用小工具 ----------
 
@@ -235,6 +237,64 @@ def _render_character(npc: dict) -> str:
     return "\n".join(lines)
 
 
+def _render_social_network(world: dict, npc: dict) -> str:
+    """渲染结构化的 NPC 社交关系网：关系、看法、合作经历与共同事件。
+
+    只使用当前 NPC 自己的视角（from_view / to_view 由 social 模块按方向挑选），
+    不会把对方的私下看法泄露给当前角色。
+    """
+    network = world.get("social_network") or {}
+    npc_id = str(npc.get("meta", {}).get("id") or "").strip()
+    if not isinstance(network, dict) or not npc_id:
+        return ""
+
+    relations = social.relation_entries(network, npc_id)[:12]
+    events = social.event_entries(network, npc_id)[:8]
+    if not relations and not events:
+        return ""
+
+    lines = [
+        "【你与同事的社会关系网（关系、看法、合作经历与共同事件）】",
+        "这些是你亲身经历或从公司里知道的。话题相关时自然带出，不要机械背诵；"
+        "下面写的看法都是你自己的判断，不要把别人的私下看法当成你亲耳听过的话。"
+        "如果与上面的自由文本关系有出入，以本节的结构化记录为准。",
+    ]
+
+    for rel in relations:
+        lines.append("")
+        lines.append(f"## 你与{rel['other_name']}的关系")
+        if rel["relation"]:
+            lines.append(f"- 关系：{rel['relation']}")
+        if rel["view"]:
+            lines.append(f"- 你对 TA 的看法：{rel['view']}")
+        if rel["collaboration_history"]:
+            lines.append("- 你们的合作经历：")
+            lines.extend(f"  * {item}" for item in rel["collaboration_history"])
+        if rel["social_events"]:
+            lines.append("- 你们共同经历的社交事件：")
+            lines.extend(f"  * {item}" for item in rel["social_events"])
+        if rel["tension"]:
+            lines.append(f"- 关系中的张力：{rel['tension']}")
+        if rel["trust"] is not None:
+            lines.append(
+                f"- 你们的长期关系基础：{rel['trust']}/100（不是你对访客的信任值）"
+            )
+
+    if events:
+        lines.append("")
+        lines.append("## 你参与过的共同事件")
+        for event in events:
+            date = f"{event['date']} " if event["date"] else ""
+            participants = "、".join(event["participants"])
+            lines.append(f"* {date}{event['title']}（参与者：{participants}）")
+            if event["summary"]:
+                lines.append(f"  - 事件经过：{event['summary']}")
+            if event["impact"]:
+                lines.append(f"  - 你记得的细节/影响：{event['impact']}")
+
+    return "\n".join(lines)
+
+
 def _render_records(npc: dict) -> str:
     """渲染「你亲历的公司材料」：NPC 对 OA 文档的真实记忆。"""
     rec = npc.get("records")
@@ -377,6 +437,7 @@ def build_system_prompt(world: dict, npc: dict, ctx: dict | None = None) -> str:
         _render_summary(ctx.get("summary") or ""),
         _render_rules(world, npc),
         _render_character(npc),
+        _render_social_network(world, npc),
         _render_records(npc),
         _render_opinions(npc),
         _render_knowledge(npc),
@@ -473,6 +534,7 @@ def build_moments_messages(world: dict, npc: dict) -> list[dict]:
     records = npc.get("records", {}).get("entries", [])
     world_meta = world.get("meta", {})
     company = world.get("company", {})
+    network = world.get("social_network") or {}
 
     name = meta.get("display_name", "")
     pronoun = "他" if basics.get("gender") == "男" else "她"
@@ -503,7 +565,36 @@ def build_moments_messages(world: dict, npc: dict) -> list[dict]:
     rel_text = "\n".join(f"- {_fmt_relationship_key(k)}：{v}" for k, v in rel.items())
     events = "；".join(company.get("public_events_recent", []))
 
-    system = f"""你是一名编剧，正在为虚构公司「微芒科技」的员工生成微信朋友圈动态。今天是 {world_meta.get('current_date', '')}（周五）。
+    social_lines = []
+    for item in social.relation_entries(network, meta.get("id", ""))[:6]:
+        head = f"- 与 {item['other_name']}"
+        if item["relation"]:
+            head += f"：{item['relation']}"
+        social_lines.append(head)
+        if item["view"]:
+            social_lines.append(f"  · 你对 TA 的看法：{item['view']}")
+        if item["collaboration_history"]:
+            social_lines.append(
+                f"  · 合作经历：{'；'.join(item['collaboration_history'])}"
+            )
+        if item["social_events"]:
+            social_lines.append(f"  · 共同事件：{'；'.join(item['social_events'])}")
+        if item["tension"]:
+            social_lines.append(f"  · 张力：{item['tension']}")
+    for item in social.event_entries(network, meta.get("id", ""))[:4]:
+        date = f"{item['date']} " if item["date"] else ""
+        social_lines.append(f"- {date}{item['title']}：{item['summary']}")
+        if item["impact"]:
+            social_lines.append(f"  · {pronoun}记得：{item['impact']}")
+    social_text = "\n".join(social_lines)
+
+    opinions_text = "\n".join(
+        f"- {item.get('about', '')}：{item.get('take', '')}"
+        for item in (npc.get("opinions_on_colleagues") or [])[:8]
+        if isinstance(item, dict) and str(item.get("take") or "").strip()
+    )
+
+    system = f"""你是一名编剧，正在为虚构公司「{company.get('name') or '公司'}」的员工生成微信朋友圈动态。今天是 {world_meta.get('current_date', '')}（周五）。
 
 【发布者】{name}，{meta.get('title', '')}，{basics.get('age', '')}岁。用「{pronoun}」称呼。
 【性格】{'、'.join(p.get('core_traits', []))}
@@ -518,13 +609,19 @@ def build_moments_messages(world: dict, npc: dict) -> list[dict]:
 【{pronoun}与同事们的关系（点赞、评论要符合这些关系与语气）】
 {rel_text}
 
+【{pronoun}与同事的合作经历、共同事件（点赞/评论可以自然呼应，但不要写成小作文）】
+{social_text or "（无）"}
+
+【{pronoun}对同事的私下看法（只用于把握互动语气，不要直接写进朋友圈）】
+{opinions_text or "（无）"}
+
 【生成要求】
 1. 生成 4-6 条最近两周内的朋友圈，按时间从新到旧排列（爱发的人多一点，克制的人少而短）。
 2. 每条 1-3 句，像真实朋友圈：吐槽加班、生活琐事、美食奶茶、天气、家人、周末、小感慨都可以。不要写小作文，不要用括号动作描写。
 3. 语气与 emoji 使用习惯完全符合性格（有人几乎不用 emoji）。
 4. 严禁出现：任何公司机密（项目代号、数字、客户与商务信息、内部争论细节）；资料中注明「秘密」「没人知道」「不对外提」的内容；指名道姓吐槽他人。工作内容只允许停留在「累」「忙」「磨人」这种模糊层面，不要对工作进展下任何结论（不能出现「过了」「成了」「搞定」这类暗示成功的说法）。
 5. 时间标签用相对时间，如：刚刚 / 2小时前 / 昨天 23:12 / 3天前 / 10月12日。
-6. 每条可以有点赞（0-4 人）与评论（0-2 条）。评论的「from」从下列同事中选，语气符合各自身份；发布者本人也可以回复同事的评论（from 用发布者名字，放在被回复的评论之后）。不是每条都要有互动，许总、方雨桐很少出现：
+6. 每条可以有点赞（0-4 人）与评论（0-2 条）。评论的「from」从下列同事中选，语气符合各自身份；发布者本人也可以回复同事的评论（from 用发布者名字，放在被回复的评论之后）。不是每条都要有互动；不爱社交的人可以少出现或只点赞：
 {cast_text}
 
 【输出格式】只输出一个 JSON 对象，不要任何解释文字、不要代码块标记：

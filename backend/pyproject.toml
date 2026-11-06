@@ -1,7 +1,7 @@
 [project]
 name = "viganex-backend"
 version = "0.1.0"
-description = "微芒科技 NPC 对话游戏后端"
+description = "宇宙衍生本源（the-origin）NPC 对话游戏后端"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

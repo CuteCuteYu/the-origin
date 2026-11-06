@@ -1,6 +1,6 @@
 # 宇宙衍生本源 · the-origin
 
-> **《微芒之下 · 商业调查档案》** —— 一个「AI NPC 社交工程」对话游戏
+> **《宇宙衍生本源》（the-origin）· 商业调查档案** —— 一个「AI NPC 社交工程」对话游戏
 >
 > 你扮演一名商业调查员，用一场场对话，从一家公司员工的嘴里套出秘密项目的情报。
 
@@ -9,6 +9,7 @@
 ## 目录
 
 - [游戏简介](#游戏简介)
+- [界面预览](#界面预览)
 - [玩法与目标](#玩法与目标)
 - [技术栈](#技术栈)
 - [快速开始](#快速开始)
@@ -33,7 +34,7 @@
 
 ## 游戏简介
 
-《微芒之下》是一个由大语言模型实时驱动的文字对话游戏。
+《宇宙衍生本源》（the-origin）是一个由大语言模型实时驱动的文字对话游戏。
 
 - **场景**：深圳市南山区智园大厦 14 楼，微芒科技（VigaNex）——一家 48 人的工业级边缘 AI 视觉模组公司；
 - **你**：竞争对手派出的情报分析员，对外身份是「睿析咨询」的高级顾问，今天是你第三次到访公司；
@@ -42,6 +43,84 @@
 - **特色**：公司还挂着一套模拟 OA 系统，里面藏着 18 份从人设推导出的内部文档——公告、会议纪要、周报、群聊归档、项目复盘。**先侦查，再开口。**
 
 > 系统不会判定胜负。什么时候算「拿到手」，由你自己判断。
+
+---
+
+## 界面预览
+
+> 以下截图均为 1920×1080 的实际运行界面，完整文件位于 [`screenshots/`](screenshots/)。
+
+### 人类前端（玩家调查沙盘）
+
+#### 1. 访谈室主界面
+
+![人类前端主界面](screenshots/human-01-main.png)
+
+左侧是任务简报、情报拼图自评与访谈名单；中间是访谈室，按 NPC 的可用时段约人；顶栏显示虚拟时钟、档案编号与重置入口。
+
+#### 2. 真实 NPC 对话
+
+![人类前端 NPC 对话](screenshots/human-02-chat.png)
+
+输入开场白后，NPC 依据人设、关系网、知识边界与当前信任 / 警觉实时回复；每轮推进 5 分钟，名单上的「已记录 N 问」与数值同步更新。
+
+#### 3. OA 系统：文档列表
+
+![人类前端 OA 文档列表](screenshots/human-03-oa.png)
+
+18 份文档按公告通知、会议纪要、日志周报、通讯记录、项目档案分类；带 🔒 的文档需要口令，未读数与阅读状态会保留。
+
+#### 4. OA 文档阅读器
+
+![人类前端 OA 文档阅读](screenshots/human-04-oa-doc.png)
+
+公告、周报、群聊、复盘统一由 8 种内容块渲染；首次打开文档消耗 2 分钟，正文与作者、日期、标签都来自场景配置。
+
+#### 5. 调查笔记本
+
+![人类前端调查笔记本](screenshots/human-05-notebook.png)
+
+口径档案自动记录你对不同 NPC 说过的自我陈述；通用备忘与按人物分栏的观察记录保存在后端存档，重启不丢。
+
+#### 6. NPC 朋友圈
+
+![人类前端 NPC 朋友圈](screenshots/human-06-moments.png)
+
+朋友圈由 AI 依据人设、关系网与合作经历生成，包含动态、点赞与同事评论；首次生成后缓存，可手动刷新覆盖。
+
+### AI 前端（自主操作员终端）
+
+> AI 对局截图使用固定决策演示，便于稳定展示界面；实际游玩仍由大模型实时决策。
+
+#### 1. 待命主界面
+
+![AI 前端待命界面](screenshots/ai-01-dashboard.png)
+
+左侧是任务指令、目标名册与历史对局；中间是行动链；右侧是情报板与代理记忆。顶栏显示 AGENT / GAME 两套模型与实际协议。
+
+#### 2. 一次完整自主对局
+
+![AI 前端行动链与最终报告](screenshots/ai-02-action-chain.png)
+
+代理自动完成「思考 → 读文档 → 情报鉴定 → 阶段推进 → 收束」，行动链保留每一步的理由、动作与反馈；右侧生成最终情报报告。
+
+#### 3. 控制台设置：事件与阅读偏好
+
+![AI 前端设置：事件类型](screenshots/ai-04-settings-events.png)
+
+可按事件类型显隐行动链、切换舒适 / 紧凑密度、新事件置顶、自动滚动、思考 / 文档默认折叠。
+
+#### 4. 控制台设置：双模型配置
+
+![AI 前端设置：双模型](screenshots/ai-05-settings-models.png)
+
+AGENT 负责进攻决策与最终报告，GAME 负责 NPC 扮演与情报鉴定；两套模型可分别覆盖 API Key、Base URL 与模型名，留空回退 `ANTHROPIC*` 环境变量，并可单独测试连接。
+
+#### 5. 控制台设置：过滤预设与场景
+
+![AI 前端设置：过滤与场景](screenshots/ai-06-settings-filters.png)
+
+过滤预设可自定义行动链的可见事件组合；场景配置区显示 `scenario.json` 的导入状态、NPC / 文档规模与校验错误，可立即重新导入。
 
 ---
 
@@ -84,11 +163,11 @@
 | 层 | 技术 | 说明 |
 | --- | --- | --- |
 | 前端 | React 18 + Vite 5 | 三视图：访谈室（SSE 流式聊天）+ OA 模拟系统 + 笔记本 |
-| 后端 | Python 3.10+ / FastAPI + uvicorn | 12 个接口，逻辑集中在 6 个 Python 文件 |
+| 后端 | Python 3.10+ / FastAPI + uvicorn | 12 个人类接口 + 6 个 AI 接口 + 2 个场景接口；人类逻辑集中在 6 个 Python 文件，AI / 场景为独立模块 |
 | 环境管理 | uv | `uv sync` / `uv run` |
 | 存储 | 本地 JSON 文件 | 无数据库；人设、世界观、OA 文档、全部运行时状态都是 JSON |
-| 模型 | glm-5.3（OpenAI 兼容接口） | 自动扫描系统 `OPENAI*` 环境变量 |
-| 测试 | pytest + httpx（TestClient） | 35 个用例：状态机 / 提示词遮蔽 / API 全链路（假模型注入，不需要 API Key） |
+| 模型 | glm-5.3 | 人类前端自动扫描 `OPENAI*`；AI 前端自动扫描 `ANTHROPIC*`（默认模型同为 glm-5.3） |
+| 测试 | pytest + httpx（TestClient） | 53 个用例：状态机 / 提示词遮蔽 / API 全链路（假模型注入，不需要 API Key） |
 
 ---
 
@@ -128,8 +207,8 @@ powershell -ExecutionPolicy Bypass -File .\start.ps1
 
 ```
 [config] 扫描系统环境变量中的 OPENAI* 配置：
-  发现 OPENAI_API_KEY = e919b***ffKQ
-  发现 OPENAI_BASE_URL = https***s/v4
+  发现 OPENAI_API_KEY = abcd***wxyz
+  发现 OPENAI_BASE_URL = https***/v4
 [config] 使用模型: glm-5.3
 ```
 
@@ -166,7 +245,7 @@ cd backend
 uv run pytest
 ```
 
-36 个用例覆盖：存储层读写与重置、`<state>` 解析与心理状态合并、八卦 / 口径沉淀与跨 NPC 注入、虚拟时钟与下班边界、口令归一化、提示词的世界真相遮蔽（`499` 绝不出现）、API 全链路（SSE 流 / 409 / 解锁计时 / 加密文档 open 拒绝 / 笔记 / 重置）。测试通过 `THE_ORIGIN_DATA_DIR` 把数据目录指向临时副本并注入假模型，**不需要 API Key，也不会碰真实存档**。
+53 个用例覆盖：存储层读写与重置、`<state>` 解析与心理状态合并、八卦 / 口径沉淀与跨 NPC 注入、虚拟时钟与下班边界、口令归一化、提示词的世界真相遮蔽（`499` 绝不出现）、API 全链路（SSE 流 / 409 / 解锁计时 / 加密文档 open 拒绝 / 笔记 / 重置）。测试通过 `THE_ORIGIN_DATA_DIR` 把数据目录指向临时副本并注入假模型，**不需要 API Key，也不会碰真实存档**。
 
 ---
 
@@ -226,30 +305,34 @@ code/
 ├── start.ps1                      # 一键启动脚本（纯 ASCII 英文，避免乱码）
 ├── backend/
 │   ├── pyproject.toml             # uv 项目配置（fastapi / uvicorn / openai + dev: pytest/httpx）
-│   ├── main.py                    # FastAPI 入口：12 个路由 + SSE 流式 + 记忆压缩
+│   ├── main.py                    # FastAPI 入口：人类路由 + AI/场景路由挂载 + 静态托管
 │   ├── config.py                  # 启动时扫描 OPENAI* 环境变量（掩码打印）
 │   ├── llm.py                     # OpenAI 兼容客户端封装（glm-5.3，流式 + 关闭 thinking）
 │   ├── prompt_builder.py          # ★ 提示词组装器：人设 JSON → 15 层 system prompt
 │   ├── gamestate.py               # ★ 游戏状态机：信任/警觉、八卦、口径、时钟、OA 解锁
-│   ├── storage.py                 # JSON 原子读写（world / npcs / oa / saves / moments）
+│   ├── storage.py                 # JSON 原子读写（world / npcs / oa / saves / moments / AI 对局）
+│   ├── scenario.py                # ★ 场景配置编译：scenario.json → world / npcs / oa
+│   ├── scenario_api.py            # /api/scenario/*（状态 / 重新导入）
+│   ├── ai_config.py               # AI 前端专用 ANTHROPIC* 环境变量发现
+│   ├── ai_llm.py                  # Anthropic / OpenAI 双协议客户端
+│   ├── ai_intel.py                # 情报鉴定、阶段反馈、最终报告
+│   ├── ai_game.py                 # AI 可调用的游戏动作层
+│   ├── ai_agent.py                # 自主代理循环
+│   ├── ai_api.py                  # /api/ai/*（SSE 对局、中止、历史）
 │   ├── tests/                     # pytest 套件（假模型注入，无需 API Key）
 │   │   ├── conftest.py            # 数据目录指向临时副本 + 存档自动清理 + TestClient
 │   │   ├── test_storage.py
 │   │   ├── test_gamestate.py
 │   │   ├── test_prompt_builder.py
-│   │   └── test_api.py
+│   │   ├── test_api.py
+│   │   ├── test_ai.py
+│   │   └── test_scenario.py
 │   └── data/
-│       ├── world.json             # 世界观：公司设定、秘密项目真相、GM 规则、游戏时钟
-│       ├── npcs/
-│       │   ├── npc_01.json        # 陈静 · 行政前台（八卦枢纽，17:30 下班）
-│       │   ├── npc_02.json        # 周明远 · 资深工程师（技术核心，18:30 下班）
-│       │   └── npc_03.json        # 方雨桐 · 产品总监（守关 BOSS，19:00 闭园）
-│       ├── oa/                    # OA 模拟系统文档（人设衍生物料，3 份受限）
-│       │   ├── announcements.json # 公告通知（3 份）
-│       │   ├── meetings.json      # 会议纪要（3 份，2 份需口令）
-│       │   ├── logs.json          # 日志与周报（4 份）
-│       │   ├── im.json            # 群聊 / 私聊归档（5 份，1 份需口令）
-│       │   └── projects.json      # 项目复盘与商务档案（3 份）
+│       ├── scenario.json          # ★ 场景唯一事实来源：公司 / 环境 / NPC / OA / 鉴定规则
+│       ├── scenario.example.json  # 最小示例模板（复制为 scenario.json 即可开新局）
+│       ├── world.json             # 生成产物：世界观 / 秘密项目 / GM 规则 / 游戏时钟
+│       ├── npcs/                  # 生成产物：npc_01 陈静 / npc_02 周明远 / npc_03 方雨桐
+│       ├── oa/                    # 生成产物：OA 模拟系统文档（3 份受限）
 │       ├── saves/                 # 运行时生成：对话存档、心理状态、摘要、八卦、口径、时钟、笔记、OA 状态
 │       └── moments/               # 运行时生成：朋友圈动态缓存（AI 生成）
 └── frontend/
@@ -267,6 +350,12 @@ code/
             ├── OABlocks.jsx       # OA 文档内容块渲染器（8 种 block 类型）
             ├── NotebookPanel.jsx  # 笔记本（口径档案 + 玩家手记）
             └── MomentsModal.jsx   # 朋友圈弹窗（AI 生成动态 / 点赞 / 评论）
+
+AI_frontend/                         # 面向 AI 的自主操作员终端（零构建，后端托管在 /ai）
+    ├── index.html                   # 控制台骨架 + 视图设置面板
+    ├── styles.css                   # 仪表盘 / 情报板 / 行动链 / 设置面板样式
+    ├── app.js                       # SSE 消费、事件渲染、自定义过滤、历史回放
+    └── README.md                    # 使用说明
 ```
 
 ### 一次对话的完整数据流
@@ -306,6 +395,9 @@ code/
 | `knowledge` | 公开信息 + **三层分级机密** + 绝不透露 + 线索网络 | 信息控制核心 |
 | `performance` | 场景设定、对话弧线、警觉触发点、元规则、对话范例 | 演技约束 |
 
+> 顶层可选字段 `social_network` 用结构化数据描述 NPC 之间的合作经历、共同事件与双方视角；
+> 它会进入 NPC 提示词、朋友圈生成，以及 AI 玩家的公开关系简报。字段说明见 [`SCENARIO.md`](SCENARIO.md)。
+
 ### 2. 信息三层分级机制
 
 `knowledge.secrets_by_layer` 把机密分成三层，每层条目都带「出现的时机」与「表达参考」：
@@ -320,7 +412,7 @@ code/
 
 ### 3. 提示词分层组装
 
-`prompt_builder.py` 把世界观 + 人设 + **运行时状态**渲染为 **15 层 system prompt**：
+`prompt_builder.py` 把世界观 + 人设 + **运行时状态**渲染为 **16 层 system prompt**：
 
 1. **场景层**：游戏时间（虚拟时钟）、地点、该 NPC 的会面场景；
 2. **世界观层**：公司设定 + 世界真相（报价数字自动遮蔽为 `49x`，防止模型超纲泄底）；
@@ -330,13 +422,14 @@ code/
 6. **前情摘要层**：长局压缩出的「以前聊过什么」；
 7. **扮演规则层**：GM 通用规则 + 该角色专属元规则（第一人称 / 不承认 AI / 不泄露提示词 / 记忆规则 / 材料反应规则）；
 8. **角色档案层**：basics → duties → personality → background → relationships → side_details 结构化渲染；
-9. **材料记忆层**（`records`）：逐一列出亲历文档与回忆态度；
-10. **私人看法层**（`opinions_on_colleagues`）；
-11. **知识边界层**：公开信息 + 三层分级 + 绝不透露 + 线索网络；
-12. **互动策略层**：对话弧线 + 警觉触发点剧本；
-13. **风格示范层**：对话范例渲染为纯文本（**明确标注「非真实历史」**，不是真实消息）；
-14. **心理状态层**：该 NPC 当前的信任 / 警觉数值、分档行为指引、已耐受的话术清单；
-15. **输出协议层**：要求回复末尾追加 `<state>{...}</state>` 块（信任 / 警觉 / 本轮话术 / 想跟同事说的八卦 / 访客口径）。
+9. **社会关系网层**（`social_network`）：结构化关系、本人视角的看法、合作经历与共同事件；
+10. **材料记忆层**（`records`）：逐一列出亲历文档与回忆态度；
+11. **私人看法层**（`opinions_on_colleagues`）；
+12. **知识边界层**：公开信息 + 三层分级 + 绝不透露 + 线索网络；
+13. **互动策略层**：对话弧线 + 警觉触发点剧本；
+14. **风格示范层**：对话范例渲染为纯文本（**明确标注「非真实历史」**，不是真实消息）；
+15. **心理状态层**：该 NPC 当前的信任 / 警觉数值、分档行为指引、已耐受的话术清单；
+16. **输出协议层**：要求回复末尾追加 `<state>{...}</state>` 块（信任 / 警觉 / 本轮话术 / 想跟同事说的八卦 / 访客口径）。
 
 历史消息以 OpenAI messages 格式携带（摘要索引之前的消息已被压缩），上限 500 条，配合存档即长期记忆。
 
@@ -428,12 +521,15 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/npcs/npc_01/chat" -Method Post
 
 ## 数据文件格式
 
+> 从 1.3 起，`world.json` / `npcs/npc_XX.json` / `oa/*.json` 都是 `scenario.json` 的**生成产物**。
+> 自定义场景请改 [`backend/data/scenario.json`](SCENARIO.md)，保存后重启后端会自动导入。
+
 ### world.json（世界观）
 
 ```jsonc
 {
   "meta": {
-    "game_title": "微芒之下", "current_date": "2026-10-16", "scene": "...",
+    "game_title": "宇宙衍生本源", "current_date": "2026-10-16", "scene": "...",
     "game_clock": { "start": "16:00", "end": "19:00", "minutes_per_chat": 5, "minutes_per_doc": 2 }
   },
   "company":  { "name": "微芒科技（深圳）有限公司", "org_structure": ["CEO 许沉舟：...", "..."] },
@@ -506,40 +602,41 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/npcs/npc_01/chat" -Method Post
 
 ## 自定义指南
 
+> 场景的唯一事实来源是 `backend/data/scenario.json`。修改 `world.json` /
+> `npcs/npc_XX.json` / `oa/*.json` 只会在下一次导入时被覆盖。
+> 完整字段说明与最小示例见 [`SCENARIO.md`](SCENARIO.md)。
+
 ### 修改人设（最常用）
 
-直接编辑 `backend/data/npcs/npc_XX.json`：
+编辑 `scenario.json` → `npcs[]` 中对应的 NPC：
 
 - 改性格 → `personality.speech_style` / `catchphrases`；
 - 改说话风格 → `performance.few_shot_examples`（风格示范，注意它们**不是**真实对话）；
 - 调信息释放时机 → `knowledge.secrets_by_layer` 各条目的 `when` / `how_to_say`；
 - 新增材料记忆 → `records.entries`。
 
-后端以 `--reload` 运行时会自动重载，改完即生效（正在进行的对话不受影响）。改完请自行核对 JSON 合法性：
-
-```powershell
-uv run python -c "import json;json.load(open('data/npcs/npc_01.json',encoding='utf-8'));print('OK')"
-```
+保存后重启后端，或调用 `POST /api/scenario/reload`；校验失败会在响应与
+`GET /api/scenario/status` 中给出具体字段。
 
 ### 新增 OA 文档
 
-1. 在 `backend/data/oa/` 对应分类文件中追加一个文档对象（参考上文格式）；若要做成**受限文档**，加上 `access` 节（`restricted` / `passphrase` / `lock_hint` / `reason`），并在某个 NPC 的 layer 信息或群聊归档里埋下口令线索；
+1. 编辑 `scenario.json` → `oa_documents.<分类>` 追加一个文档对象；若要做成**受限文档**，加上 `access` 节（`restricted` / `passphrase` / `lock_hint` / `reason`），并在某个 NPC 的 layer 信息或群聊归档里埋下口令线索；
 2. 如果希望 NPC「记得」它，把条目写进相关 NPC 的 `records.entries`；
-3. 刷新页面即可看到。已读状态按文档 `id` 记录，切勿重复。
+3. 重新导入后刷新页面即可看到。已读状态按文档 `id` 记录，切勿重复。
 
 ### 调整难度与节奏
 
-- **时间压力**：改 `world.json -> meta.game_clock`（缩短整天、或把每轮对话调成 10 分钟）；
-- **NPC 上下班**：改各人设 `meta.available_until`；
-- **初始好感**：改 `performance.initial_state`（例如让方雨桐初始警觉 50，难度立刻上升）；
+- **时间压力**：改 `scenario.json -> meta.game_clock`（缩短整天、或把每轮对话调成 10 分钟）；
+- **NPC 上下班**：改 `npcs[].meta.available_until`；
+- **初始好感**：改 `npcs[].performance.initial_state`（例如让守关角色初始警觉 50，难度立刻上升）；
 - **数值分档**：分档规则在 `gamestate.py` 的 `state_summary_for_prompt`（写进提示词的文案）。
 
 ### 新增第四名 NPC
 
-1. 复制 `npc_01.json` 为 `npc_04.json`，重写全部内容（保持 11 大节结构，记得 `meta.available_until` 与 `performance.initial_state`）；
-2. 世界观中补充该人物在公司结构里的位置（`world.json -> company.org_structure`）；
+1. 复制 `scenario.json` 里现有的一个 `npcs[]` 元素，改 `meta.id` 为 `npc_04`，重写全部内容（记得 `meta.available_until` 与 `performance.initial_state`）；
+2. 在 `company.org_structure` 中补充该人物在公司结构里的位置；
 3. 若涉及新线索，在其余 NPC 的 `relationships` / `records` 中同步提及（保持一致性）；
-4. 无需改任何代码——后端按 `npc_*.json` 自动发现，前端自动出现在名单中。
+4. 无需改任何代码——导入后前端自动出现新名单。
 
 ## 更换 AI 对话模型
 
@@ -696,6 +793,156 @@ response = client.chat.completions.create(
 
 ---
 
+## AI 自动游玩前端（AI_frontend）
+
+> 给 AI 玩的版本：用户只提一次要求，代理自己读文档、找人套话、判断情报价值，直到全部情报目标都 confirmed。
+
+- **入口**：启动后端后访问 <http://127.0.0.1:8000/ai/>（静态页面由 FastAPI 直接托管，无需 npm 安装 / 构建）；
+- **模型配置（双模型）**：默认读取系统环境变量里的 `ANTHROPIC*`；也可在 AI 前端 `⚙ → 模型配置` 中分别填写「AI 玩家（进攻/报告）」与「游戏环境（NPC/鉴定）」的 API Key、Base URL、模型名。留空字段自动回退环境变量；两套模型可以指向不同网关。密钥只保存在当前标签页 `sessionStorage`，不写入对局记录；每套模型都有「测试连接」按钮，可先验证再开跑；
+- **人类前端不受影响**：`/api/*` 的对局逻辑未改动，AI 侧全部走新增的 `/api/ai/*`；
+- **明确胜负**：新增情报鉴定器，每次对话 / 读文档后返回 `valid_info`、命中目标、`partial / confirmed`、缺口与阶段；配置中的全部情报目标都 confirmed 即判定通关并生成报告；
+- **行动链自定义**：右上角 `⚙` 可按事件类型显隐、创建过滤预设、切换舒适/紧凑密度、新事件置顶、自动滚动、思考/文档默认折叠；偏好保存在浏览器 `localStorage`；
+- **共享存档**：AI 与人类共用同一份 `data/saves/`，重开一局前记得勾选「重置存档（清空进度）」；
+- **公开关系图**：AI 玩家只拿到 `visibility=public` 的 NPC 关系与共同事件（例如公开冲突），用来决定先找谁、向谁打听谁；`team` / `private` 的私下关系不会进入 AI 简报；
+- **接口**：`GET /api/ai/briefing`、`GET /api/ai/status`、`POST /api/ai/play`（SSE）、`POST /api/ai/test-llm`、`POST /api/ai/stop`、`GET /api/ai/runs`；
+- **详细说明**：见 [`AI_frontend/README.md`](AI_frontend/README.md)。
+
+---
+
+## 场景配置（公司 / 环境 / NPC）
+
+被测试的公司、环境、NPC、OA 文档与 AI 鉴定规则统一收敛在：
+
+```
+backend/data/scenario.json
+```
+
+- 修改保存后，**重启后端会自动导入**（按配置哈希判断是否需要重新编译）；
+- 也可以调用 `POST /api/scenario/reload`，或在 AI 前端 `⚙ → 场景配置` 里立即重新导入；
+- 导入会生成 `world.json`、`npcs/npc_XX.json`、`oa/<category>.json` —— 这些是生成产物，不要直接编辑；
+- 配置校验失败时不会覆盖现有数据，错误会打印在控制台并可通过 `GET /api/scenario/status` 查看；
+- 最少需要提供 `meta`、`company`、`secret_project`（恰好 3 个情报目标）、`player`、`gm_rules`、`npcs`；
+- 字段说明、最小示例、NPC 模板与排查清单见 [`SCENARIO.md`](SCENARIO.md)。
+
+### 用 AI 生成 `scenario.json`（提示词教程）
+
+`scenario.json` 通常是十几万字符量级的 JSON，手写容易漏字段。推荐让 AI 分两步生成：**先定大纲，再出 JSON，最后按校验错误迭代**。
+
+#### 第 1 步：让 AI 出设定大纲（不写 JSON）
+
+```text
+你是《宇宙衍生本源》（the-origin）的场景设计师。请先不要输出 JSON，用表格给出一个商业调查游戏的设定大纲：
+- 被调查公司：行业、规模、地点、近期公开事件、内部紧张点
+- 玩家身份与掩护故事
+- 恰好 3 个机密情报目标（名称 + 一句话真相 + 获取路线）
+- 3 个 NPC（姓名/职位/性格/下班时间/各自掌握哪一层信息/相互矛盾或传话的点）
+- NPC 之间的关系网：至少 3 组关系（亲近 / 冲突 / 合作各一组），每组写双方视角、合作经历、共同事件与张力
+- 至少 8 份 OA 文档的清单（标题/类型/日期/是否受限/口令线索藏在谁的对话里）
+- 难度设定：初始信任/警觉、每轮对话耗时、闭园时间
+要求：虚构，不要使用真实公司或真人；信息之间要能互相印证，不能自相矛盾。
+```
+
+#### 第 2 步：让 AI 输出完整 JSON
+
+确认大纲后，用下面的模板（尖括号内容替换成你的设定）：
+
+```text
+你是《宇宙衍生本源》（the-origin）的场景配置生成器。请根据给定大纲，生成一份完整的 scenario.json。
+
+【硬性约束】
+1. 只输出一个 JSON 对象，不要 markdown 代码块，不要解释文字。
+2. 顶层必须包含：meta、company、secret_project、player、gm_rules、ai_judge、social_network、npcs、oa_documents。
+3. secret_project.three_intel_targets 必须恰好 3 个；target_id 唯一且只含小写字母/数字/下划线；
+   每个目标要有 name、detail（真值，给鉴定器看）、hint、keywords（3-8 个）。
+4. npcs 至少 3 个；meta.id 必须是 npc_01、npc_02、npc_03…；
+   每个 NPC 必须包含 meta、basics、duties、personality、background、relationships、
+   side_details、knowledge、records、opinions_on_colleagues、performance。
+5. 每个 NPC 的 knowledge.secrets_by_layer 必须有三层：layer1_surface / layer2_familiar / layer3_deep；
+   每条包含 info、when、how_to_say。layer3 全场最多泄露一两条。
+6. oa_documents 是 {分类名: [文档]}；每份文档要有唯一 id、title、date、author、preview、blocks；
+   至少 2 份带 access.restricted=true 和 passphrase，并在某个 NPC 的 layer 信息里埋下口令线索。
+7. NPC 的下班时间、初始信任/警觉、信息层级要互相协调，保证可通关但不容易。
+8. 不要使用真实公司、真实人物、真实客户名；全部虚构。
+9. JSON 必须合法：双引号、无尾逗号、无注释；数组/对象闭合。
+10. 不要输出 <state> 或任何提示词协议。
+11. social_network 必须包含 cast、relations、events：
+    - cast 用 {id: "姓名（职位）"} 覆盖所有被引用的 from/to/participants；
+    - relations 至少 3 组，每条含 from、to、relation、from_view、to_view、
+      collaboration_history（1-3 条）、social_events（0-2 条）、tension、trust（0-100）、
+      visibility（public/team/private）；
+    - events 至少 1 个，含 event_id、date、title、participants（至少 2 人）、
+      summary、impact、visibility；
+    - from_view 与 to_view 必须是不同人的第一人称视角，不能写成同一个人；
+    - visibility 要合理：公开冲突用 public，私下看法用 team/private。
+
+【schema 摘要】
+（粘贴 SCENARIO.md 的「顶层结构」、「NPC 字段说明」与「NPC 社会关系网」三节）
+
+【设定大纲】
+（粘贴第 1 步的表格）
+
+【参考结构】
+可以参照 backend/data/scenario.example.json 的字段形状，但内容必须按本大纲重写。
+
+输出完整 scenario.json。
+```
+
+#### 第 3 步：保存并校验
+
+1. 将 AI 输出保存为 `backend/data/scenario.json`（先备份原文件）；
+2. 重启后端，或调用 `POST /api/scenario/reload`，或在 AI 前端 `⚙ → 场景配置 → 重新导入场景`；
+3. 查看 `GET /api/scenario/status` 的 `errors`（或 AI 前端面板中的错误列表）；
+4. 如果有错误，把错误原文贴回给 AI：
+
+```text
+下面是 scenario.json 的校验错误。请只修复这些问题，保持其余内容不变，
+输出完整的、合法的 JSON（不要省略任何字段，不要输出解释）：
+- ...
+```
+
+5. 重复直到 `errors` 为空、`up_to_date` 为 true。
+
+#### 第 4 步：让 AI 做一致性复查（推荐）
+
+```text
+请以审稿人身份检查这份 scenario.json：
+1. 三个情报目标是否都能从 NPC 的三层信息与 OA 文档中找到获取路径？
+2. 是否有 NPC 说出了自己知识边界之外的信息？
+3. 受限文档的口令线索是否至少藏在一条玩家能拿到的 layer2 信息里？
+4. 时间是否足够：按每轮对话 5 分钟、每份文档 2 分钟，玩家能否在闭园前完成？
+5. 有没有自相矛盾的人名、日期、部门、金额？
+6. social_network 里的 from_view / to_view 是否分别符合两个当事人的性格，且没有把同一句话复制给双方？
+7. public / team / private 的可见性是否合理（公开冲突 public，私下看法 team/private）？
+只列出问题与修改建议，不要重写全文。
+```
+
+#### 生成时的实用技巧
+
+- **分块生成**：如果模型输出被截断，先让它单独生成 `npcs` 数组，再单独生成 `oa_documents`，最后用脚本合并；比一次输出十几万字符更稳。
+- **先小后大**：先用 `scenario.example.json`（1 个 NPC、1 份文档）跑通，再让 AI 扩写到 3 个 NPC、8+ 份文档。
+- **让它自查 JSON**：要求「输出前检查括号、逗号与引号」；内容太长时宁可减少一份文档，也要保证 JSON 合法。
+- **只让它改配置**：配置生成只输出 `scenario.json`，不要让 AI 修改 `backend/*.py`。
+- **关系网单独生成**：先让 AI 用表格列出「谁—谁—关系—合作过什么—共同事件—公开/私下」，再转成 `social_network.relations` / `events`，能显著减少关系自相矛盾。
+- **不要写密钥**：`scenario.json` 只放世界设定；模型密钥在 AI 前端的「模型配置」中填写。
+
+#### 验收清单
+
+- [ ] 恰好 3 个 `three_intel_targets`，`target_id` 唯一
+- [ ] `npcs[].meta.id` 唯一且形如 `npc_01`
+- [ ] 每个 NPC 有 `personality` / `knowledge` / `performance`
+- [ ] `social_network.cast` 覆盖所有 `from` / `to` / `participants`
+- [ ] 至少 3 组 `relations`，包含合作经历 / 共同事件 / 双方视角
+- [ ] `from_view` 与 `to_view` 是不同人的视角，且没有把私下看法写成公开信息
+- [ ] `visibility` 使用合理：公开冲突 `public`，私下关系 `team` / `private`
+- [ ] 每个 `layer1/2/3` 都有 `info` / `when` / `how_to_say`
+- [ ] 受限文档有 `access.passphrase`，且口令线索可获取
+- [ ] 情报目标的 `detail` 与 NPC 台词能对应上
+- [ ] 时间为 16:00–19:00，NPC 下班时间与剧情一致
+- [ ] 没有真实公司 / 真人 / 真实客户
+- [ ] JSON 合法，`/api/scenario/status` 无错误
+
+---
+
 ## 扩展与二次开发
 
 本项目涉及的技术点：
@@ -716,5 +963,5 @@ response = client.chat.completions.create(
 
 ---
 
-> 宇宙衍生本源 · the-origin（微芒之下）
+> 宇宙衍生本源 · the-origin
 > 公司、人物与事件均为虚构，对话内容由大模型实时生成，不代表任何真实主体。

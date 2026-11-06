@@ -67,3 +67,78 @@ def test_build_summary_messages_include_existing_and_batch():
     assert msgs[0]["role"] == "system"
     assert "旧摘要内容" in msgs[1]["content"]
     assert "u1" in msgs[1]["content"] and "a1" in msgs[1]["content"]
+
+
+def _world_with_social_network():
+    world = dict(storage.load_world())
+    world["social_network"] = {
+        "cast": {
+            "npc_01": "陈静（行政前台）",
+            "npc_02": "周明远（资深工程师）",
+        },
+        "relations": [
+            {
+                "from": "npc_01",
+                "to": "npc_02",
+                "relation": "测试关系",
+                "from_view": "结构化独有看法-陈静",
+                "to_view": "结构化独有看法-周明远",
+                "collaboration_history": ["结构化独有合作"],
+                "social_events": [
+                    {
+                        "date": "2026-01-01",
+                        "title": "结构化独有事件",
+                        "summary": "结构化独有经过",
+                    }
+                ],
+                "tension": "结构化独有张力",
+                "trust": 66,
+            }
+        ],
+        "events": [
+            {
+                "event_id": "evt_test",
+                "date": "2026-01-02",
+                "title": "结构化独有共同事件",
+                "participants": ["npc_01", "npc_02"],
+                "summary": "结构化独有共同经过",
+                "impact": {
+                    "npc_01": "结构化独有影响-陈静",
+                    "npc_02": "结构化独有影响-周明远",
+                },
+            }
+        ],
+    }
+    return world
+
+
+def test_social_network_injected_with_own_view_only():
+    world = _world_with_social_network()
+
+    p1 = pb.build_system_prompt(world, storage.load_npc("npc_01"), {})
+    assert "结构化独有看法-陈静" in p1
+    assert "结构化独有看法-周明远" not in p1
+    assert "结构化独有合作" in p1
+    assert "结构化独有事件" in p1
+    assert "结构化独有张力" in p1
+    assert "结构化独有影响-陈静" in p1
+    assert "结构化独有影响-周明远" not in p1
+
+    p2 = pb.build_system_prompt(world, storage.load_npc("npc_02"), {})
+    assert "结构化独有看法-周明远" in p2
+    assert "结构化独有看法-陈静" not in p2
+    assert "结构化独有影响-周明远" in p2
+    assert "结构化独有影响-陈静" not in p2
+
+
+def test_moments_prompt_uses_social_network_and_opinions():
+    world = _world_with_social_network()
+    npc = storage.load_npc("npc_01")
+    prompt = pb.build_moments_messages(world, npc)[0]["content"]
+
+    assert "结构化独有合作" in prompt
+    assert "结构化独有事件" in prompt
+    assert "结构化独有看法-陈静" in prompt
+    assert "结构化独有看法-周明远" not in prompt
+    # 原有 opinions_on_colleagues 也应被朋友圈提示词使用
+    assert "孙大爷" in prompt

@@ -34,10 +34,10 @@ export default function NPCList({ npcs, activeId, onSelect, onOpenMoments, histo
                   <span className="name-line">
                     <b>{npc.display_name}</b>
                     <i>{npc.title}</i>
-                    <em className={`avail-badge ${available ? "on" : "off"}`}>
-                      {available ? `🟢 可聊到 ${until || "--:--"}` : "🔴 已下班"}
-                    </em>
                   </span>
+                  <em className={`avail-badge ${available ? "on" : "off"}`}>
+                    {available ? `🟢 可聊到 ${until || "--:--"}` : "🔴 已下班"}
+                  </em>
                   <span className="oneliner">{npc.one_liner}</span>
                   <span className="slot">
                     {npc.interaction_slot}
